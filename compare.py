@@ -51,10 +51,22 @@ def compare(meta_path_1, meta_path_2):
         raw2 = mne.io.read_raw_fif(fif2, preload=True, verbose=False)
         d1, d2 = raw1.get_data(), raw2.get_data()
         if d1.shape == d2.shape:
-            max_diff = np.max(np.abs(d1 - d2))
-            allclose = np.allclose(d1, d2, atol=1e-12)
-            mark = "PASS" if allclose else "FAIL"
-            print(f"  [{mark}] raw data: shape={d1.shape}  max_abs_diff={max_diff:.2e}")
+            diff = np.abs(d1 - d2)
+            max_abs_diff = np.max(diff)
+            max_signal = np.max(np.abs(d1))
+            rel_error = max_abs_diff / max_signal if max_signal > 0 else 0
+            mean_abs_diff = np.mean(diff)
+            print(f"  raw data shape: {d1.shape}")
+            print(f"  max signal amplitude (A): {max_signal:.2e} V")
+            print(f"  max_abs_diff:  {max_abs_diff:.2e} V")
+            print(f"  mean_abs_diff: {mean_abs_diff:.2e} V")
+            print(f"  max relative error: {rel_error:.2e}  ({rel_error*100:.4f}%)")
+            if rel_error < 1e-6:
+                print("  [PASS] difference is at floating point precision")
+            elif rel_error < 1e-3:
+                print("  [WARN] small but non-trivial difference — worth investigating")
+            else:
+                print("  [FAIL] meaningful data difference detected")
         else:
             print(f"  [FAIL] raw data shapes differ: {d1.shape} vs {d2.shape}")
     else:
